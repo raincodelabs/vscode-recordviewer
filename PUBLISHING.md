@@ -54,6 +54,11 @@ Raincode COBOL Debugger is published under, which lives in the raincode monorepo
   git push origin main && git push github main
   ```
 
+  The `github` remote is the HTTPS URL on purpose. `git@github.com:raincodelabs/...` is refused for
+  the SSH key this machine offers - it authenticates as a GitHub account that has no write access to
+  the organisation - while the stored HTTPS credential does. Fix the SSH side if you prefer it; the
+  push works either way.
+
   Nothing internal belongs in what goes out: no customer host names, paths or data. The tests use
   `ssh://mainframe-host/datasets/...`, which resolves to nothing anywhere.
 
