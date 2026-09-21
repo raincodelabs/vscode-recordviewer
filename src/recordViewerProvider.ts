@@ -1,12 +1,12 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { CodePage } from './core/codepage';
 import { toHex } from './core/format';
-import { DataSetMeta, findDataFileFor, findMetaFor, isMetaPath, readMeta } from './core/meta';
+import { DataSetMeta, isMetaName } from './core/meta';
 import { RecordFile, SearchSpec } from './core/recordFile';
 import { RECORD_FORMATS, ReadingOptions, VB_HEADER_FORMATS, carriageControlOf, splitKindOf } from './core/types';
-import { OptionsStore, initialOptions, maxSearchMatches, sanitise, useMetaFile } from './settings';
+import { basename, findDataUri, findMetaUri, openDataSet, readMetaAt } from './dataSetFiles';
+import { OptionsStore, initialOptions, maxSearchMatches, remoteFileSizeLimit, sanitise, useMetaFile } from './settings';
 
 /**
  * One open file. The document owns the reading of it; the panel owns the showing of it. Changing how
@@ -16,14 +16,23 @@ import { OptionsStore, initialOptions, maxSearchMatches, sanitise, useMetaFile }
 class RecordDocument implements vscode.CustomDocument {
     constructor(
         readonly uri: vscode.Uri,
-        readonly dataPath: string,
+        /** The data file, which is not `uri` when a .meta was the thing opened. */
+        readonly dataUri: vscode.Uri,
         readonly meta: DataSetMeta | undefined,
         public file: RecordFile,
+        /**
+         * The whole file, when it had to be fetched whole because it is not on a local disk. Kept so
+         * that changing the reading options does not go back over the wire for the same bytes.
+         */
+        public bytes: Buffer | undefined,
     ) {}
 
     /** Cancels whatever background walk of the file is in flight, on close or on a settings change. */
     counting?: vscode.CancellationTokenSource;
     searching?: vscode.CancellationTokenSource;
+
+    /** What the options store remembers this file's settings under. */
+    get key(): string { return this.dataUri.toString(); }
 
     dispose(): void {
         this.counting?.cancel();
@@ -47,28 +56,26 @@ export class RecordViewerProvider implements vscode.CustomReadonlyEditorProvider
     }
 
     async openCustomDocument(uri: vscode.Uri): Promise<RecordDocument> {
-        if (uri.scheme !== 'file') {
-            throw new Error('The record viewer reads files from disk; ' + uri.scheme + ': is not one.');
-        }
-
         // Opening the .meta opens the dataset it describes: that is the file a user picks out of the
         // catalog's volume directory, and the data file beside it is an implementation detail.
-        let dataPath = uri.fsPath;
-        let metaPath: string | undefined;
+        let dataUri = uri;
+        let metaUri: vscode.Uri | undefined;
 
-        if (isMetaPath(dataPath)) {
-            metaPath = dataPath;
-            const data = await findDataFileFor(dataPath);
-            if (!data) throw new Error('No data file next to ' + path.basename(dataPath) + '.');
-            dataPath = data;
+        if (isMetaName(basename(uri))) {
+            metaUri = uri;
+            const data = await findDataUri(uri);
+            if (!data) throw new Error('No data file next to ' + basename(uri) + '.');
+            dataUri = data;
         } else if (useMetaFile()) {
-            metaPath = await findMetaFor(dataPath);
+            metaUri = await findMetaUri(dataUri);
         }
 
-        const meta = metaPath ? await readMeta(metaPath) : undefined;
-        const options = initialOptions(meta, this.store.get(dataPath));
+        const meta = metaUri ? await readMetaAt(metaUri) : undefined;
+        const options = initialOptions(meta, this.store.get(dataUri.toString()));
+        const opened = await openDataSet(dataUri, remoteFileSizeLimit());
 
-        return new RecordDocument(uri, dataPath, meta, await RecordFile.open(dataPath, options));
+        return new RecordDocument(uri, dataUri, meta,
+            await RecordFile.fromSource(displayPath(dataUri), opened.source, options), opened.bytes);
     }
 
     async resolveCustomEditor(document: RecordDocument, panel: vscode.WebviewPanel): Promise<void> {
@@ -129,8 +136,8 @@ export class RecordViewerProvider implements vscode.CustomReadonlyEditorProvider
 
         await panel.webview.postMessage({
             type: 'init',
-            fileName: path.basename(document.dataPath),
-            dataPath: document.dataPath,
+            fileName: basename(document.dataUri),
+            dataPath: file.name,
             metaPath: document.meta?.metaPath,
             dataSetName: document.meta?.name,
             meta: document.meta,
@@ -141,6 +148,10 @@ export class RecordViewerProvider implements vscode.CustomReadonlyEditorProvider
                 kind: splitKindOf(file.options.recordFormat),
                 carriageControl: carriageControlOf(file.options.recordFormat),
                 codePageLabel: file.codePage.label,
+                // A file the editor handed over whole rather than one read from a disk - worth saying,
+                // since it is why a large one is refused and why later edits to it are not reflected.
+                scheme: document.dataUri.scheme,
+                fetchedWhole: document.bytes !== undefined,
             },
             size: file.size,
             recordFormats: RECORD_FORMATS.filter(format => format !== 'Unknown'),
@@ -206,12 +217,17 @@ export class RecordViewerProvider implements vscode.CustomReadonlyEditorProvider
         document.counting?.cancel();
         document.searching?.cancel();
 
-        const reopened = await RecordFile.open(document.dataPath, options);
+        // A file fetched whole is reread from the bytes already in hand; a local one is reopened,
+        // which costs a file handle and nothing else.
+        const opened = await openDataSet(document.dataUri, remoteFileSizeLimit(), document.bytes);
+        const reopened = await RecordFile.fromSource(displayPath(document.dataUri), opened.source, options);
+
         const previous = document.file;
         document.file = reopened;
+        document.bytes = opened.bytes;
         await previous.close();
 
-        await this.store.remember(document.dataPath, options);
+        await this.store.remember(document.key, options);
         await this.start(document, panel);
     }
 
@@ -332,6 +348,11 @@ export class RecordViewerProvider implements vscode.CustomReadonlyEditorProvider
 </body>
 </html>`;
     }
+}
+
+/** What the file is called in the title bar and the status bar. */
+function displayPath(uri: vscode.Uri): string {
+    return uri.scheme === 'file' ? uri.fsPath : uri.toString();
 }
 
 function atLeastZero(value: number): number {

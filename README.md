@@ -58,6 +58,17 @@ under **Configure Editor Association** too:
 }
 ```
 
+## Files that are not on a local disk
+
+A dataset on an SSH mount (the **SSH FS** extension's `ssh://`, or any other extension's file system)
+opens too. VS Code's file system API reads a whole file or nothing, though, so such a file is fetched
+once in its entirety rather than a page at a time, and it is fetched again only when the editor is
+reopened - changes made to it meanwhile are not seen. `raincodeRecordViewer.remoteFileSizeLimitMB`
+(64 MB by default) is what stops a careless click pulling a gigabyte down an SFTP connection.
+
+A file opened in a **Remote - SSH** or **WSL** window is not affected: there the extension runs on the
+remote machine, the file is local to it, and it is read a page at a time like any other.
+
 ## Reading settings
 
 **Reading settings** opens what the file is being read as, and every part of it can be changed while
@@ -91,6 +102,7 @@ search over a large file reports its progress and can be stopped.
 | `raincodeRecordViewer.defaultRecordLength` | LRECL for a fixed-format file with no metadata. |
 | `raincodeRecordViewer.defaultVbHeader` | Header a variable file is read with; `auto` detects it. |
 | `raincodeRecordViewer.lineSeqEscape` | Zero byte escapes the next one, in line-sequential files. |
+| `raincodeRecordViewer.remoteFileSizeLimitMB` | Largest file fetched whole from a file system that is not a local disk. |
 | `raincodeRecordViewer.maxSearchMatches` | Where a search gives up. |
 
 ## Large files

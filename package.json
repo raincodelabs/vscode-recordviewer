@@ -2,7 +2,7 @@
     "name": "raincode-record-viewer",
     "displayName": "Mainframe Record Viewer",
     "description": "Browse mainframe data files record by record - fixed or variable record format, EBCDIC or ASCII - in text and hex, with search.",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "publisher": "raincode",
     "license": "MIT",
     "icon": "images/icon.png",
@@ -122,6 +122,12 @@
                     "type": "boolean",
                     "default": false,
                     "description": "For line-sequential files, treat a zero byte as an escape for the byte that follows, the way the runtime does when that option is on."
+                },
+                "raincodeRecordViewer.remoteFileSizeLimitMB": {
+                    "type": "number",
+                    "default": 64,
+                    "minimum": 1,
+                    "description": "Largest file the viewer will fetch whole from a file system that is not a local disk - an SSH FS mount, for instance - since those can only hand over a whole file rather than the page being looked at."
                 },
                 "raincodeRecordViewer.maxSearchMatches": {
                     "type": "number",

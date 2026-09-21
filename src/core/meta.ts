@@ -1,21 +1,22 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-
 import { RECORD_FORMATS, RecordFormat } from './types';
 
 /**
- * Reading the catalog's .meta file, when the data file has one beside it.
- *
- * A .meta is one flat XML element written by RainCodeLegacyBatchDataset:
+ * The catalog's .meta file: one flat XML element written by RainCodeLegacyBatchDataset,
  *
  *   <dataSet name="MY.DATA.SET" dataSetType="File" fileFormat="EntrySequenced"
  *            recordFormat="FB" recordLength="80" ... />
  *
- * Only what the viewer needs is read, and everything is optional: a meta that says nothing useful
+ * and the rules for finding it beside a data file.
+ *
+ * Everything here is pure string work, and deliberately so: the viewer opens files over whatever file
+ * system VS Code is showing - the local disk, an SSH mount, anything a extension provides - and the
+ * naming rules must not be reimplemented per file system. Reading bytes is the caller's job.
+ *
+ * Only what the viewer needs is read, and all of it is optional: a meta that says nothing useful
  * leaves the viewer exactly where a file with no meta at all does, rather than failing.
  */
 export interface DataSetMeta {
-    /** The path the metadata was read from. */
+    /** Where the metadata was read from - a path or a URI, whatever the caller opened. */
     metaPath: string;
     /** The catalogued DSN, shown in the editor title. */
     name?: string;
@@ -26,9 +27,9 @@ export interface DataSetMeta {
 }
 
 /** Data file extensions the catalog writes, by the kind of dataset (DataSetMetaPersistenceFile). */
-const DATA_EXTENSIONS = ['.seq', '.dat', '.txt', '.idx', '.rr'];
+export const DATA_EXTENSIONS: readonly string[] = ['.seq', '.dat', '.txt', '.idx', '.rr'];
 
-const META_EXTENSION = '.meta';
+export const META_EXTENSION = '.meta';
 
 export function parseMeta(xml: string, metaPath: string): DataSetMeta | undefined {
     const element = /<\s*(?:\w+:)?dataSet\b([^>]*)>/i.exec(xml);
@@ -54,53 +55,47 @@ export function parseMeta(xml: string, metaPath: string): DataSetMeta | undefine
     };
 }
 
-export async function readMeta(metaPath: string): Promise<DataSetMeta | undefined> {
-    try {
-        return parseMeta(await fs.readFile(metaPath, 'utf8'), metaPath);
-    } catch {
-        return undefined;
-    }
+export function isMetaName(fileName: string): boolean {
+    return extensionOf(fileName) === META_EXTENSION;
 }
 
 /**
- * The .meta beside a data file: `X.seq` is described by `X.meta`, and so is `X` with no extension at
- * all. Undefined when there is none - the ordinary case for a file that did not come from a catalog.
+ * The names the .meta of a data file could have, best first. `X.seq` is described by `X.meta`, and so
+ * is `X` with no extension at all - the shape a file handed over by other means tends to have.
  */
-export async function findMetaFor(dataPath: string): Promise<string | undefined> {
-    const directory = path.dirname(dataPath);
-    const base = path.basename(dataPath);
-    const extension = path.extname(base);
+export function metaNameCandidates(dataFileName: string): string[] {
+    const extension = extensionOf(dataFileName);
 
-    const candidates = DATA_EXTENSIONS.includes(extension.toLowerCase())
-        ? [base.slice(0, -extension.length) + META_EXTENSION]
-        : [base + META_EXTENSION, base.slice(0, base.length - extension.length) + META_EXTENSION];
+    const candidates = DATA_EXTENSIONS.includes(extension)
+        ? [withoutExtension(dataFileName) + META_EXTENSION]
+        : [dataFileName + META_EXTENSION, withoutExtension(dataFileName) + META_EXTENSION];
 
-    for (const candidate of candidates) {
-        const candidatePath = path.join(directory, candidate);
-        if (await isFile(candidatePath)) return candidatePath;
-    }
-
-    return undefined;
+    return unique(candidates);
 }
 
 /**
- * The data file a .meta describes. The catalog names it after the meta with its own extension per
- * dataset kind, so every one of them is tried, then the bare name - which is what a file handed over
- * by other means tends to look like.
+ * The names the data file of a .meta could have, best first: the catalog's own extension per kind of
+ * dataset, then the bare name.
  */
-export async function findDataFileFor(metaPath: string): Promise<string | undefined> {
-    const withoutExtension = metaPath.slice(0, metaPath.length - path.extname(metaPath).length);
+export function dataNameCandidates(metaFileName: string): string[] {
+    const base = withoutExtension(metaFileName);
 
-    for (const extension of [...DATA_EXTENSIONS, '']) {
-        const candidate = withoutExtension + extension;
-        if (candidate !== metaPath && await isFile(candidate)) return candidate;
-    }
-
-    return undefined;
+    return unique([...DATA_EXTENSIONS.map(extension => base + extension), base])
+        .filter(candidate => candidate !== metaFileName);
 }
 
-export function isMetaPath(filePath: string): boolean {
-    return path.extname(filePath).toLowerCase() === META_EXTENSION;
+function extensionOf(fileName: string): string {
+    const dot = fileName.lastIndexOf('.');
+    return dot <= 0 ? '' : fileName.slice(dot).toLowerCase();
+}
+
+function withoutExtension(fileName: string): string {
+    const extension = extensionOf(fileName);
+    return extension.length === 0 ? fileName : fileName.slice(0, fileName.length - extension.length);
+}
+
+function unique(values: string[]): string[] {
+    return [...new Set(values)];
 }
 
 function asRecordFormat(value: string | undefined): RecordFormat | undefined {
@@ -117,12 +112,4 @@ function decodeEntities(value: string): string {
         .replace(/&quot;/g, '"')
         .replace(/&apos;/g, "'")
         .replace(/&amp;/g, '&');
-}
-
-async function isFile(candidate: string): Promise<boolean> {
-    try {
-        return (await fs.stat(candidate)).isFile();
-    } catch {
-        return false;
-    }
 }

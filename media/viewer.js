@@ -479,12 +479,19 @@
         if (message.metaPath) parts.push('Defaults came from ' + message.metaPath + '.');
         else parts.push('No .meta file beside this one: everything above is a guess you can correct.');
 
+        if (resolved.fetchedWhole) {
+            parts.push('This file came over ' + resolved.scheme + ', which hands over a whole file rather than '
+                + 'the page being read, so all of it was fetched once. Later changes to it are not shown until '
+                + 'the editor is reopened.');
+        }
+
         return parts.join(' ');
     }
 
     function statusFile(message) {
         const name = message.dataSetName ? message.dataSetName + ' - ' + message.fileName : message.fileName;
-        return name + ' - ' + bytes(message.size) + ' - ' + message.options.recordFormat
+        const where = message.resolved.fetchedWhole ? ' - over ' + message.resolved.scheme : '';
+        return name + ' - ' + bytes(message.size) + where + ' - ' + message.options.recordFormat
             + ' - ' + message.resolved.codePageLabel;
     }
 

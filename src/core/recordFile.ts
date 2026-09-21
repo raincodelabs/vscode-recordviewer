@@ -37,7 +37,8 @@ export type SearchProgress = (scanned: number, matches: number) => void;
  */
 export class RecordFile {
     private constructor(
-        readonly path: string,
+        /** What the file is called, for the editor to show: a path, or a URI for a remote one. */
+        readonly name: string,
         private readonly source: ByteSource,
         readonly options: ReadingOptions,
         readonly settings: CursorSettings,
@@ -45,13 +46,20 @@ export class RecordFile {
         private readonly index: RecordIndex,
     ) {}
 
+    /** A file on this machine's disk, read where it lies. */
     static async open(filePath: string, options: ReadingOptions): Promise<RecordFile> {
-        const source = await ByteSource.open(filePath);
+        return RecordFile.fromSource(filePath, await ByteSource.open(filePath), options);
+    }
 
+    /**
+     * A file from wherever the caller got it - the disk, or the bytes of a file the editor fetched
+     * over its own file system. The record layer never learns the difference.
+     */
+    static async fromSource(name: string, source: ByteSource, options: ReadingOptions): Promise<RecordFile> {
         try {
             const settings = await resolveSettings(source, options);
             const codePage = CodePage.resolve(options.codePage);
-            return new RecordFile(filePath, source, options, settings, codePage, new RecordIndex(source, settings));
+            return new RecordFile(name, source, options, settings, codePage, new RecordIndex(source, settings));
         } catch (error) {
             await source.close();
             throw error;

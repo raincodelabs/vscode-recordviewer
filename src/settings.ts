@@ -26,6 +26,18 @@ export function maxSearchMatches(): number {
     return vscode.workspace.getConfiguration(SECTION).get<number>('maxSearchMatches') ?? 5000;
 }
 
+/**
+ * How much of a file the viewer will fetch whole, in bytes, when it is not on a local disk.
+ *
+ * VS Code's file system API reads a whole file or nothing, so an `ssh://` dataset cannot be paged
+ * through the way a local one is. The limit is what stops a careless click pulling a gigabyte over an
+ * SFTP connection.
+ */
+export function remoteFileSizeLimit(): number {
+    const megabytes = vscode.workspace.getConfiguration(SECTION).get<number>('remoteFileSizeLimitMB') ?? 64;
+    return Math.max(1, megabytes) * 1024 * 1024;
+}
+
 export function useMetaFile(): boolean {
     return vscode.workspace.getConfiguration(SECTION).get<boolean>('useMetaFile') ?? true;
 }
