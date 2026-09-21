@@ -45,11 +45,17 @@ Raincode COBOL Debugger is published under, which lives in the raincode monorepo
   makes the source redistributable by anyone who gets the package.
 - **The icon** is the Raincode square from the debugger extension. Fine for a Raincode publisher;
   check it is the mark that is meant to be used publicly.
-- **The repository URL in `package.json` is the internal one**,
-  `owngit.corp.phidani.be/raincode/vscode-recordviewer`. The Marketplace shows that link on the
-  extension's public page, internal host name and all. Drop the field, or point it at a public mirror,
-  before publishing outside the company - `vsce package` then needs `--allow-missing-repository`
-  again, which is all that field was buying.
+- **The source lives in two places.** `origin` is the internal
+  `owngit.corp.phidani.be:raincode/vscode-recordviewer`, and `github` is the public
+  `github.com/raincodelabs/vscode-recordviewer`, which is the URL `package.json` names and the one
+  the Marketplace shows. Push to both, or the public one goes stale:
+
+  ```bash
+  git push origin main && git push github main
+  ```
+
+  Nothing internal belongs in what goes out: no customer host names, paths or data. The tests use
+  `ssh://mainframe-host/datasets/...`, which resolves to nothing anywhere.
 
 ## Code pages
 

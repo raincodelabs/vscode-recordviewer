@@ -23,9 +23,11 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git+ssh://git@owngit.corp.phidani.be/raincode/vscode-recordviewer.git"
+        "url": "git+https://github.com/raincodelabs/vscode-recordviewer.git"
     },
+    "homepage": "https://github.com/raincodelabs/vscode-recordviewer",
     "bugs": {
+        "url": "https://github.com/raincodelabs/vscode-recordviewer/issues",
         "email": "info@raincode.com"
     },
     "main": "./dist/extension.js",

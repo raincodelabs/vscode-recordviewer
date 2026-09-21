@@ -125,4 +125,5 @@ about them.
 
 ---
 
-Made by [Raincode Labs](https://www.raincodelabs.com/).
+Made by [Raincode Labs](https://www.raincodelabs.com/). Source and issues:
+[github.com/raincodelabs/vscode-recordviewer](https://github.com/raincodelabs/vscode-recordviewer).
