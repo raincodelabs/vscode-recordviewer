@@ -5,6 +5,7 @@
     },
     "include": [
         "src/core/**/*.ts",
+        "src/dataSetFiles.ts",
         "test/**/*.ts"
     ]
 }

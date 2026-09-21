@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.2.2
+
+- A file refused for being too large says its size in the unit that suits it, rather than reporting a
+  40 KB dataset and a 1 KB limit as "0.0 MB" apiece.
+
+## 0.2.1
+
+- A file system that cannot report a file's size no longer stops the file being opened: the size is
+  only wanted for the limit, and not knowing it is no reason to refuse a file that reads perfectly well.
+
 ## 0.2.0
 
 - Datasets on any file system VS Code can show, including the `ssh://` of the SSH FS extension. Those

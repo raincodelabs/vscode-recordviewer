@@ -11,6 +11,10 @@ npm run typecheck
 npm run compile   # dist/extension.js, what the package ships
 ```
 
+`test-integration/` is a separate suite that runs the viewer against a real SSH FS connection to a
+container; it is not part of `npm test` and its README says how to stand the server up. Run it after
+touching `src/dataSetFiles.ts`.
+
 Run it from a second VS Code window with the extension loaded, and right-click a `.seq`, a `.dat`
 or any other file to choose *Open as Mainframe Records*:
 
@@ -30,7 +34,8 @@ npx vsce publish                       # needs a Personal Access Token for the r
 
 The token comes from the Azure DevOps organisation behind the `raincode` publisher, with the
 **Marketplace: Manage** scope; `vsce login raincode` stores it. The publisher is the same one the
-Raincode COBOL Debugger is published under (`dotnet/runtime/VSCodePlugin`).
+Raincode COBOL Debugger is published under, which lives in the raincode monorepo under
+`dotnet/runtime/VSCodePlugin`.
 
 ## Before the first publication
 
@@ -40,8 +45,11 @@ Raincode COBOL Debugger is published under (`dotnet/runtime/VSCodePlugin`).
   makes the source redistributable by anyone who gets the package.
 - **The icon** is the Raincode square from the debugger extension. Fine for a Raincode publisher;
   check it is the mark that is meant to be used publicly.
-- **A repository URL**, once there is a public one. Without it `vsce package` needs
-  `--allow-missing-repository`, and the Marketplace page shows no source link.
+- **The repository URL in `package.json` is the internal one**,
+  `owngit.corp.phidani.be/raincode/vscode-recordviewer`. The Marketplace shows that link on the
+  extension's public page, internal host name and all. Drop the field, or point it at a public mirror,
+  before publishing outside the company - `vsce package` then needs `--allow-missing-repository`
+  again, which is all that field was buying.
 
 ## Code pages
 

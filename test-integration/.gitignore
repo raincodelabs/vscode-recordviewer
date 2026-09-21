@@ -1,0 +1,5 @@
+node_modules/
+extensions/
+fixture/
+.vscode-test/
+run.out

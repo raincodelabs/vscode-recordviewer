@@ -5,6 +5,7 @@ node_modules/**
 out/**
 src/**
 test/**
+test-integration/**
 tools/**
 tsconfig*.json
 **/*.map

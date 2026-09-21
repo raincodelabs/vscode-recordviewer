@@ -1,0 +1,13 @@
+{
+    "name": "record-viewer-remote-check",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Runs the viewer against a file system that is not a local disk. See README.md.",
+    "scripts": {
+        "test": "node runTest.js"
+    },
+    "devDependencies": {
+        "@vscode/test-electron": "^2.4.1",
+        "mocha": "^11.0.0"
+    }
+}

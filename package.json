@@ -2,7 +2,7 @@
     "name": "raincode-record-viewer",
     "displayName": "Mainframe Record Viewer",
     "description": "Browse mainframe data files record by record - fixed or variable record format, EBCDIC or ASCII - in text and hex, with search.",
-    "version": "0.2.0",
+    "version": "0.2.2",
     "publisher": "raincode",
     "license": "MIT",
     "icon": "images/icon.png",
@@ -21,6 +21,10 @@
         "RECFM",
         "hex"
     ],
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@owngit.corp.phidani.be/raincode/vscode-recordviewer.git"
+    },
     "bugs": {
         "email": "info@raincode.com"
     },
@@ -153,6 +157,7 @@
         "@types/vscode": "^1.85.0",
         "@vscode/vsce": "^3.2.1",
         "esbuild": "^0.25.0",
-        "typescript": "^5.6.3"
+        "typescript": "^5.6.3",
+        "vscode-uri": "^3.2.0"
     }
 }

@@ -34,13 +34,13 @@ export async function openDataSet(uri: vscode.Uri, sizeLimit: number, cached?: B
 
     if (cached) return { source: ByteSource.fromBuffer(cached), bytes: cached };
 
-    const size = (await vscode.workspace.fs.stat(uri)).size;
+    const size = await sizeOf(uri);
 
-    if (size > sizeLimit) {
+    if (size !== undefined && size > sizeLimit) {
         throw new Error(
-            `${basename(uri)} is ${megabytes(size)} MB, and it is not on a local disk: a file system such `
+            `${basename(uri)} is ${sizeText(size)}, and it is not on a local disk: a file system such `
             + 'as SSH FS can only hand over a whole file, so the viewer would have to fetch all of it. The '
-            + `limit is ${megabytes(sizeLimit)} MB (raincodeRecordViewer.remoteFileSizeLimitMB). Raise it, `
+            + `limit is ${sizeText(sizeLimit)} (raincodeRecordViewer.remoteFileSizeLimitMB). Raise it, `
             + 'or copy the file locally and open that.');
     }
 
@@ -49,6 +49,21 @@ export async function openDataSet(uri: vscode.Uri, sizeLimit: number, cached?: B
     const fetched = await vscode.workspace.fs.readFile(uri);
     const bytes = Buffer.from(fetched.buffer, fetched.byteOffset, fetched.byteLength);
     return { source: ByteSource.fromBuffer(bytes), bytes };
+}
+
+/**
+ * What the file system says the file's size is, or undefined when it will not say.
+ *
+ * A provider is free not to implement stat usefully, and the size is only wanted for the limit below:
+ * failing the open over it would refuse a file that can be read perfectly well. So an unknown size
+ * means the read goes ahead.
+ */
+async function sizeOf(uri: vscode.Uri): Promise<number | undefined> {
+    try {
+        return (await vscode.workspace.fs.stat(uri)).size;
+    } catch {
+        return undefined;
+    }
 }
 
 /** The .meta beside a data file, or undefined when there is none - the ordinary case. */
@@ -94,6 +109,9 @@ async function isFile(uri: vscode.Uri): Promise<boolean> {
     }
 }
 
-function megabytes(bytes: number): string {
-    return (bytes / (1024 * 1024)).toFixed(1);
+/** A size a person can read, rather than a pile of bytes or a misleading "0.0 MB". */
+function sizeText(bytes: number): string {
+    if (bytes < 1024) return bytes + ' bytes';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
