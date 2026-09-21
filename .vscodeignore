@@ -1,0 +1,11 @@
+.gitignore
+.vscode/**
+esbuild.mjs
+node_modules/**
+out/**
+src/**
+test/**
+tools/**
+tsconfig*.json
+**/*.map
+PUBLISHING.md

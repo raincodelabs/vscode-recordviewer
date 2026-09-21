@@ -1,0 +1,152 @@
+{
+    "name": "raincode-record-viewer",
+    "displayName": "Mainframe Record Viewer",
+    "description": "Browse mainframe data files record by record - fixed or variable record format, EBCDIC or ASCII - in text and hex, with search.",
+    "version": "0.1.0",
+    "publisher": "raincode",
+    "license": "MIT",
+    "icon": "images/icon.png",
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Visualization",
+        "Other"
+    ],
+    "keywords": [
+        "mainframe",
+        "EBCDIC",
+        "COBOL",
+        "dataset",
+        "RECFM",
+        "hex"
+    ],
+    "bugs": {
+        "email": "info@raincode.com"
+    },
+    "main": "./dist/extension.js",
+    "contributes": {
+        "customEditors": [
+            {
+                "viewType": "raincode.recordViewer",
+                "displayName": "Mainframe Record Viewer",
+                "selector": [
+                    {
+                        "filenamePattern": "*"
+                    }
+                ],
+                "priority": "option"
+            }
+        ],
+        "commands": [
+            {
+                "command": "raincode.recordViewer.open",
+                "title": "Open as Mainframe Records",
+                "category": "Mainframe"
+            }
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "command": "raincode.recordViewer.open",
+                    "group": "navigation@30",
+                    "when": "!explorerResourceIsFolder"
+                }
+            ],
+            "editor/title/context": [
+                {
+                    "command": "raincode.recordViewer.open",
+                    "group": "1_open"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "raincode.recordViewer.open",
+                    "when": "resourceScheme == file"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "Mainframe Record Viewer",
+            "properties": {
+                "raincodeRecordViewer.useMetaFile": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Read the catalog .meta file beside the data file, when there is one, for the record format, the record length and the dataset name."
+                },
+                "raincodeRecordViewer.defaultCodePage": {
+                    "type": "string",
+                    "default": "ibm037",
+                    "description": "Code page used when nothing else says which one: an identifier such as ibm037, or a CCSID such as 273."
+                },
+                "raincodeRecordViewer.defaultRecordFormat": {
+                    "type": "string",
+                    "default": "FB",
+                    "enum": [
+                        "FB",
+                        "FBA",
+                        "FBM",
+                        "VB",
+                        "VBA",
+                        "VBM",
+                        "LSEQ",
+                        "VLSEQ",
+                        "U"
+                    ],
+                    "description": "Record format used for a file with no .meta file."
+                },
+                "raincodeRecordViewer.defaultRecordLength": {
+                    "type": "number",
+                    "default": 80,
+                    "minimum": 1,
+                    "description": "Record length (LRECL) used for a fixed-format file with no .meta file."
+                },
+                "raincodeRecordViewer.defaultVbHeader": {
+                    "type": "string",
+                    "default": "auto",
+                    "enum": [
+                        "auto",
+                        "mainframe",
+                        "mf-short",
+                        "mf-long"
+                    ],
+                    "enumDescriptions": [
+                        "Detect the header from the first bytes of the file.",
+                        "Mainframe RDW: four bytes, length including the RDW itself.",
+                        "Micro Focus short header: two bytes, records aligned on eight.",
+                        "Micro Focus long header: four bytes, records aligned on eight."
+                    ],
+                    "description": "Record header a variable-format file is read with."
+                },
+                "raincodeRecordViewer.lineSeqEscape": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "For line-sequential files, treat a zero byte as an escape for the byte that follows, the way the runtime does when that option is on."
+                },
+                "raincodeRecordViewer.maxSearchMatches": {
+                    "type": "number",
+                    "default": 5000,
+                    "minimum": 1,
+                    "description": "Stop a search after this many matching records."
+                }
+            }
+        }
+    },
+    "scripts": {
+        "compile": "node esbuild.mjs",
+        "watch": "node esbuild.mjs --watch",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "build-tests": "tsc -p tsconfig.test.json",
+        "test": "npm run build-tests && node --test out/test",
+        "vscode:prepublish": "node esbuild.mjs --production",
+        "package": "vsce package",
+        "publish": "vsce publish"
+    },
+    "devDependencies": {
+        "@types/node": "^20.12.7",
+        "@types/vscode": "^1.85.0",
+        "@vscode/vsce": "^3.2.1",
+        "esbuild": "^0.25.0",
+        "typescript": "^5.6.3"
+    }
+}
